@@ -3,7 +3,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-CONDA_ENV="kokoro-pdf"
+CONDA_ENV="speechifyPDF"
 
 echo "▶ Starting Kokoro TTS on http://127.0.0.1:8000 ..."
 cd "$ROOT/backend"

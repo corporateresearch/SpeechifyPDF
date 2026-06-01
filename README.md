@@ -14,44 +14,97 @@ A single-app PDF reader powered by **FastAPI** and the **Kokoro TTS model**, wit
 - 📄 **Reflowed text**: PDFs are extracted and reflowed for easy reading
 - 🖥️ **Single app**: FastAPI serves both the API and the frontend — one process, one port
 
-## Quick Start
+## Quick Start (beginner-friendly)
 
-### Requirements
+No prior experience needed. The whole thing runs locally — no API keys, no cloud, no payment.
 
-- Python 3.12+
-- ~8 GB RAM (torch + model)
-- Ubuntu/Debian, macOS, or Windows
+### What you need first
 
-### Setup
+1. **A computer** running Linux, macOS, or Windows with about **8 GB of RAM**. Any
+   modern CPU works — no graphics card required.
+2. **Miniconda** (a free tool that manages Python versions for you). If you don't
+   have it, download and install it from
+   <https://www.anaconda.com/download/success> (pick "Miniconda"). After installing,
+   **close and reopen your terminal** so the `conda` command becomes available.
+   - Quick check: type `conda --version` and press Enter. If it prints a version
+     number, you're good.
+3. **An internet connection for the first run only** — the voice model (~350 MB) is
+   downloaded automatically the first time you read a PDF, then cached forever.
+
+> Why Miniconda? SpeechifyPDF needs Python 3.10–3.12 (the Kokoro voice model does
+> **not** support Python 3.13 yet). Conda installs the right Python version in an
+> isolated "environment" so it never interferes with anything else on your machine.
+
+### Step 1 — Open a terminal in the project folder
 
 ```bash
 cd SpeechifyPDF
-conda create -n speechifyPDF python=3.12 -y
-conda activate speechifyPDF
-pip install torch --index-url https://download.pytorch.org/whl/cpu
-pip install -r backend/requirements.txt
 ```
 
-### Run
+### Step 2 — Create the environment and install everything (one time only)
+
+Copy-paste these four lines one at a time:
+
+```bash
+conda create -n speechifyPDF python=3.12 -y      # make an isolated Python 3.12
+conda activate speechifyPDF                       # switch into it
+pip install torch --index-url https://download.pytorch.org/whl/cpu   # CPU version of PyTorch
+pip install -r backend/requirements.txt           # the rest of the dependencies
+```
+
+This may take a few minutes. It only has to be done once.
+
+### Step 3 — Start the app
 
 **On Linux/macOS:**
 ```bash
 ./run.sh
-# Opens on http://127.0.0.1:8000
 ```
+(If you get a "permission denied" message, run `bash run.sh` instead.)
 
-**On Windows:**
+**On Windows:** double-click `run.bat`, or in a terminal run:
 ```bat
 run.bat
-:: Opens on http://127.0.0.1:8000
 ```
 
-**Or run directly:**
+When it's ready you'll see a line like:
+
+```
+INFO:     Uvicorn running on http://127.0.0.1:8000 (Press CTRL+C to quit)
+```
+
+### Step 4 — Open it in your browser
+
+Go to **<http://127.0.0.1:8000>**. Drag a PDF onto the page (or click to choose one),
+then press the **Space** bar — or click any sentence — to start listening. Each word
+lights up as it's read.
+
+> **First read is slower.** The very first sentence triggers a one-time model
+> download and warm-up, so it can take 10–30 seconds. After that, sentences are
+> synthesized in a few seconds and cached for instant replay.
+
+### Step 5 — Stop the app
+
+Go back to the terminal and press **Ctrl + C**.
+
+### Next time
+
+You only do Step 2 once. To run the app again later:
+
+```bash
+cd SpeechifyPDF
+conda activate speechifyPDF   # run.sh does this for you, so this line is optional
+./run.sh
+```
+
+---
+
+**Prefer to run it manually instead of the script?**
 ```bash
 conda activate speechifyPDF
 cd backend
 uvicorn app:app --host 127.0.0.1 --port 8000
-# Visit http://127.0.0.1:8000
+# then visit http://127.0.0.1:8000
 ```
 
 ## How It Works
@@ -116,9 +169,34 @@ SpeechifyPDF/
 
 ## Troubleshooting
 
-**"espeak-ng library: ..."** - The bundled espeak-ng library is loaded for grapheme-to-phoneme conversion. If misaki G2P fails, check Python environment.
+**`conda: command not found`** — Miniconda isn't installed yet, or the terminal was
+opened before installing it. Install it from
+<https://www.anaconda.com/download/success>, then close and reopen your terminal.
 
-**Slow synthesis** - Kokoro on CPU can take 5–10s per sentence. This is normal for a 24000 Hz inference. Close other apps to free RAM/CPU.
+**`./run.sh: Permission denied`** — Run it as `bash run.sh` instead, or make it
+executable once with `chmod +x run.sh`.
+
+**Install fails mentioning Python 3.13 / "no matching distribution"** — Kokoro
+requires Python 3.10–3.12. Make sure you created the environment with
+`python=3.12` (Step 2) and that `conda activate speechifyPDF` is active.
+
+**`Address already in use` / port 8000 busy** — Another program (or a previous run)
+is using port 8000. Stop the old one, or start on a different port:
+`uvicorn app:app --port 8001` and visit <http://127.0.0.1:8001>.
+
+**"No extractable text found"** — The PDF is a scanned image (just pictures of
+pages), so there's no real text to read. SpeechifyPDF reads text-based PDFs; it does
+not do OCR. Try a PDF where you can select/copy the text.
+
+**Nothing plays / no sound** — Check your system volume and that the browser tab
+isn't muted. The first sentence also takes longer (one-time model download).
+
+**Slow synthesis** — On a CPU, the first sentence can take 10–30s (model warm-up) and
+later sentences a few seconds each. This is normal. Closing other heavy apps frees up
+RAM/CPU and speeds it up.
+
+**"espeak-ng library: ..."** — Informational: the bundled espeak-ng library is loaded
+for grapheme-to-phoneme conversion. No action needed unless it reports a failure.
 
 ## License
 
