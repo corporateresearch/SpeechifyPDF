@@ -25,9 +25,9 @@ A single-app PDF reader powered by **FastAPI** and the **Kokoro TTS model**, wit
 ### Setup
 
 ```bash
-cd TTS
-conda create -n kokoro-pdf python=3.12 -y
-conda activate kokoro-pdf
+cd SpeechifyPDF
+conda create -n speechifyPDF python=3.12 -y
+conda activate speechifyPDF
 pip install torch --index-url https://download.pytorch.org/whl/cpu
 pip install -r backend/requirements.txt
 ```
@@ -48,7 +48,7 @@ run.bat
 
 **Or run directly:**
 ```bash
-conda activate kokoro-pdf
+conda activate speechifyPDF
 cd backend
 uvicorn app:app --host 127.0.0.1 --port 8000
 # Visit http://127.0.0.1:8000
@@ -76,7 +76,7 @@ uvicorn app:app --host 127.0.0.1 --port 8000
 ## Architecture
 
 ```
-TTS/
+SpeechifyPDF/
 ├── backend/
 │   ├── app.py             # FastAPI server + endpoints + static file serving
 │   ├── pdf_utils.py       # PDF extraction & sentence splitting
