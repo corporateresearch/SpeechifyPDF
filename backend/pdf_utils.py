@@ -1,20 +1,47 @@
 """PDF text extraction and sentence/paragraph segmentation.
 
 The reader displays a *reflowed* view: we pull the text out of the PDF, group it
-into paragraphs (one per text block) and split each paragraph into sentences.
-Sentences are the unit of TTS streaming, so we also cap their length to keep
-synthesis chunks small and responsive on a CPU.
+into paragraphs and split each paragraph into sentences. Sentences are the unit
+of TTS streaming, so we also cap their length to keep synthesis chunks small and
+responsive on a CPU.
+
+Paragraphs are reconstructed at the *line* level rather than trusting PyMuPDF's
+"blocks", because many PDFs (especially printed web pages) emit one block per
+wrapped line. We read every line with its position and font size, drop running
+headers/footers and page numbers, then merge consecutive lines into a paragraph,
+starting a new one on a large vertical gap, a font-size change (headings), or a
+left-edge dedent (list items). Paragraphs that run off the bottom of a page are
+stitched back to the top of the next.
 """
 from __future__ import annotations
 
 import re
+from collections import Counter
 from dataclasses import dataclass, field
+from statistics import median
 
 import fitz  # PyMuPDF
 
 # Sentences longer than this are hard-wrapped at a word boundary so a single
 # synthesis call never blocks playback for too long on a CPU.
 MAX_SENTENCE_CHARS = 280
+
+# --- Paragraph reconstruction tuning -------------------------------------
+# A vertical gap larger than (line height x this) starts a new paragraph.
+PARA_GAP_RATIO = 1.5
+# Lines smaller than (body size x this) are treated as chrome and dropped.
+CHROME_SIZE_RATIO = 0.75
+# A heading is a line whose font is larger than (body size x this).
+HEADING_SIZE_RATIO = 1.1
+# A left edge this many points to the left of the previous line starts a new
+# paragraph (e.g. the next item in a hanging-indent list).
+DEDENT_TOL = 3.0
+# Text repeated on at least this fraction of pages is a running header/footer.
+REPEAT_PAGE_RATIO = 0.5
+# A line is a sentence continuation across a page break if it does not end with
+# terminal punctuation and the next line starts lower-case.
+_TERMINAL_PUNCT = '.!?:;"”’)'
+_PAGE_NUMBER = re.compile(r"^\s*\d+(\s*/\s*\d+)?\s*$")
 
 # Collapse runs of whitespace but keep single spaces.
 _WS = re.compile(r"\s+")
@@ -96,6 +123,130 @@ def _split_sentences(paragraph: str) -> list[str]:
     return out
 
 
+@dataclass
+class _Line:
+    text: str
+    size: float  # largest span font size on the line
+    x0: float    # left edge
+    y0: float    # top edge
+    page: int
+
+
+def _page_lines(page, page_index: int) -> list[_Line]:
+    """Return the text lines on a page, in natural reading order."""
+    data = page.get_text("dict")
+    lines: list[_Line] = []
+    for block in data.get("blocks", []):
+        if block.get("type", 0) != 0:  # 0 = text, 1 = image
+            continue
+        for ln in block.get("lines", []):
+            spans = ln.get("spans", [])
+            text = "".join(s.get("text", "") for s in spans)
+            if not text.strip():
+                continue
+            size = max((s.get("size", 0.0) for s in spans), default=0.0)
+            x0, y0 = ln["bbox"][0], ln["bbox"][1]
+            lines.append(_Line(text, size, x0, y0, page_index))
+    # Sort top-to-bottom, then left-to-right, for single-column reading order.
+    lines.sort(key=lambda l: (round(l.y0, 1), round(l.x0, 1)))
+    return lines
+
+
+def _is_chrome(text: str, size: float, body_size: float, repeated: set[str]) -> bool:
+    """True for running headers/footers, page numbers and sub-body chrome."""
+    if size and size < body_size * CHROME_SIZE_RATIO:
+        return True
+    if _PAGE_NUMBER.match(text):
+        return True
+    if text.strip().lower() in repeated:
+        return True
+    return False
+
+
+def _join_lines(parts: list[str]) -> str:
+    """Join wrapped lines into one string, healing end-of-line hyphenation."""
+    out = ""
+    for raw in parts:
+        t = raw.strip()
+        if not t:
+            continue
+        if not out:
+            out = t
+        elif len(out) > 1 and out[-1] == "-" and out[-2].isalpha():
+            out = out[:-1] + t  # "exam-" + "ple" -> "example"
+        else:
+            out = f"{out} {t}"
+    return out
+
+
+def _starts_break(line: _Line, prev: _Line, line_height: float, body_size: float) -> bool:
+    """Whether `line` begins a new paragraph relative to `prev` (same page)."""
+    gap = line.y0 - prev.y0
+    if gap > line_height * PARA_GAP_RATIO:
+        return True
+    # A change in font size means a heading boundary (either direction).
+    if abs(line.size - prev.size) > 0.5:
+        return True
+    # A dedent (back toward the margin) starts the next list item / block.
+    if line.x0 < prev.x0 - DEDENT_TOL:
+        return True
+    return False
+
+
+def _collect_paragraphs(doc) -> list[str]:
+    """Reconstruct reading-order paragraphs from the PDF's lines."""
+    pages = [_page_lines(page, i) for i, page in enumerate(doc)]
+    all_lines = [ln for page in pages for ln in page]
+    if not all_lines:
+        return []
+
+    body_size = median(ln.size for ln in all_lines) or 0.0
+
+    # Identify running headers/footers: short lines repeated across many pages.
+    counts: Counter[str] = Counter()
+    for page in pages:
+        for norm in {ln.text.strip().lower() for ln in page}:
+            counts[norm] += 1
+    threshold = max(2, int(len(pages) * REPEAT_PAGE_RATIO))
+    repeated = {t for t, c in counts.items() if c >= threshold and len(t) < 80}
+
+    # Typical line height = median vertical gap between adjacent lines on a page.
+    gaps = [
+        b.y0 - a.y0
+        for page in pages
+        for a, b in zip(page, page[1:])
+        if 0 < b.y0 - a.y0 < 60
+    ]
+    line_height = median(gaps) if gaps else body_size * 1.4
+
+    paragraphs: list[list[_Line]] = []
+    prev: _Line | None = None
+    for page in pages:
+        kept = [
+            ln for ln in page
+            if not _is_chrome(ln.text, ln.size, body_size, repeated)
+        ]
+        for ln in kept:
+            new_para = prev is None
+            if not new_para and ln.page != prev.page:
+                # Page boundary: continue the paragraph only if the previous line
+                # ended mid-sentence and this one resumes in lower case.
+                resumes = (
+                    prev.text.strip()[-1:] not in _TERMINAL_PUNCT
+                    and ln.text.strip()[:1].islower()
+                )
+                new_para = not resumes
+            elif not new_para:
+                new_para = _starts_break(ln, prev, line_height, body_size)
+            if new_para:
+                paragraphs.append([ln])
+            else:
+                paragraphs[-1].append(ln)
+            prev = ln
+
+    return [_join_lines([ln.text for ln in para]) for para in paragraphs]
+
+
 def extract_document(pdf_bytes: bytes, filename: str = "document.pdf") -> Document:
     """Extract a reflowed Document from raw PDF bytes."""
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
@@ -104,23 +255,13 @@ def extract_document(pdf_bytes: bytes, filename: str = "document.pdf") -> Docume
         sentences: list[str] = []
         paragraphs: list[list[int]] = []
 
-        for page in doc:
-            # "blocks" returns layout blocks; each is roughly a paragraph.
-            blocks = page.get_text("blocks")
-            # Sort by vertical then horizontal position for natural reading order.
-            blocks.sort(key=lambda b: (round(b[1], 1), round(b[0], 1)))
-            for b in blocks:
-                # b is (x0, y0, x1, y1, text, block_no, block_type)
-                # block_type 0 = text, 1 = image; skip non-text blocks.
-                if b[6] != 0:
-                    continue
-                block_text = b[4]
-                para_sentences = _split_sentences(block_text)
-                if not para_sentences:
-                    continue
-                start = len(sentences)
-                sentences.extend(para_sentences)
-                paragraphs.append(list(range(start, len(sentences))))
+        for para_text in _collect_paragraphs(doc):
+            para_sentences = _split_sentences(para_text)
+            if not para_sentences:
+                continue
+            start = len(sentences)
+            sentences.extend(para_sentences)
+            paragraphs.append(list(range(start, len(sentences))))
     finally:
         doc.close()
 

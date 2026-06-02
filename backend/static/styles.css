@@ -637,6 +637,423 @@ html, body {
 }
 
 /* =====================================================================
+   INTERPOL RED NOTICES SECTION
+   ===================================================================== */
+.interpol-section {
+  border-top: 1px solid var(--border);
+  background: var(--bg-base);
+  position: relative;
+  overflow: hidden;
+}
+.interpol-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 400px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ff4757, transparent);
+  opacity: 0.6;
+}
+
+/* --- Header (collapsible toggle) --- */
+.interpol-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 48px 24px 32px;
+  cursor: pointer;
+  transition: background 0.3s ease;
+  position: relative;
+}
+.interpol-header:hover {
+  background: rgba(255, 71, 87, 0.02);
+}
+.interpol-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 16px;
+  border: 1px solid rgba(255, 71, 87, 0.25);
+  border-radius: 999px;
+  background: rgba(255, 71, 87, 0.06);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  color: #ff6b81;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.interpol-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff4757;
+  box-shadow: 0 0 8px rgba(255, 71, 87, 0.6);
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+.interpol-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+.interpol-subtitle {
+  font-size: 14px;
+  color: var(--text-secondary);
+  max-width: 480px;
+  text-align: center;
+  line-height: 1.5;
+}
+.interpol-expand-btn {
+  margin-top: 16px;
+  background: rgba(255, 71, 87, 0.08);
+  border: 1px solid rgba(255, 71, 87, 0.15);
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #ff6b81;
+}
+.interpol-expand-btn:hover {
+  background: rgba(255, 71, 87, 0.15);
+  border-color: rgba(255, 71, 87, 0.35);
+  transform: translateY(-2px);
+}
+.interpol-chevron {
+  transition: transform 0.35s ease;
+}
+.interpol-section.expanded .interpol-chevron {
+  transform: rotate(180deg);
+}
+
+/* --- Body (expandable) --- */
+.interpol-body {
+  padding: 0 24px 48px;
+  max-width: 900px;
+  margin: 0 auto;
+  animation: fadeInUp 0.4s ease both;
+}
+
+/* --- Form --- */
+.interpol-form {
+  margin-bottom: 24px;
+}
+.interpol-form-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.interpol-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.interpol-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--text-muted);
+  text-transform: uppercase;
+}
+.interpol-input {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  font-family: 'Inter', sans-serif;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+  width: 100%;
+}
+.interpol-input::placeholder {
+  color: var(--text-muted);
+}
+.interpol-input:focus {
+  border-color: rgba(255, 71, 87, 0.4);
+  box-shadow: 0 0 0 3px rgba(255, 71, 87, 0.08);
+}
+.interpol-select {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23708090' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 32px;
+}
+.interpol-form-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.interpol-search-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 11px 24px;
+  background: linear-gradient(135deg, #ff4757, #ff6b81);
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, filter 0.15s;
+  box-shadow: 0 4px 20px rgba(255, 71, 87, 0.25);
+}
+.interpol-search-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(255, 71, 87, 0.35);
+  filter: brightness(1.1);
+}
+.interpol-search-btn:active {
+  transform: scale(0.97);
+}
+.interpol-search-btn:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+.interpol-clear-btn {
+  padding: 10px 20px;
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.interpol-clear-btn:hover {
+  border-color: var(--border-glow);
+  color: var(--text-primary);
+  background: var(--accent-soft);
+}
+
+/* --- Status --- */
+.interpol-status {
+  text-align: center;
+  padding: 8px;
+  font-size: 13px;
+  min-height: 24px;
+}
+.interpol-status .loading {
+  color: #ff6b81;
+  animation: pulse-text 1.5s ease-in-out infinite;
+}
+.interpol-status .error {
+  color: #ff6b6b;
+}
+.interpol-status .info {
+  color: var(--text-secondary);
+}
+
+/* --- Result Cards --- */
+.interpol-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+}
+.interpol-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  gap: 16px;
+  transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
+}
+.interpol-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(180deg, #ff4757, #ff6b81);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.interpol-card:hover {
+  border-color: rgba(255, 71, 87, 0.25);
+  background: var(--bg-elevated);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(255, 71, 87, 0.05);
+}
+.interpol-card:hover::before {
+  opacity: 1;
+}
+
+/* Thumbnail */
+.interpol-thumb {
+  width: 72px;
+  height: 90px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg-surface);
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+}
+.interpol-thumb-placeholder {
+  width: 72px;
+  height: 90px;
+  border-radius: 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  font-size: 28px;
+}
+
+/* Card content */
+.interpol-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.interpol-card-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.interpol-red-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: rgba(255, 71, 87, 0.12);
+  border: 1px solid rgba(255, 71, 87, 0.2);
+  border-radius: 4px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #ff4757;
+  text-transform: uppercase;
+  flex-shrink: 0;
+}
+.interpol-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin: 8px 0;
+}
+.interpol-meta-item {
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.interpol-meta-label {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.interpol-card-charge {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Empty state */
+.interpol-empty {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--text-muted);
+}
+.interpol-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.3;
+}
+.interpol-empty-text {
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+.interpol-empty-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* --- Pagination --- */
+.interpol-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.interpol-page-btn {
+  padding: 8px 18px;
+  background: var(--bg-surface);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.interpol-page-btn:hover:not(:disabled) {
+  border-color: rgba(255, 71, 87, 0.3);
+  color: var(--text-primary);
+  background: rgba(255, 71, 87, 0.06);
+}
+.interpol-page-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.interpol-page-info {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+/* Skeleton loading */
+@keyframes shimmer {
+  0% { background-position: -400px 0; }
+  100% { background-position: 400px 0; }
+}
+.interpol-skeleton {
+  background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-elevated) 50%, var(--bg-surface) 75%);
+  background-size: 800px 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 8px;
+}
+
+/* =====================================================================
    RESPONSIVE
    ===================================================================== */
 @media (max-width: 768px) {
@@ -658,5 +1075,33 @@ html, body {
   }
   .playbar-inner {
     padding: 12px 16px;
+  }
+  /* Interpol responsive */
+  .interpol-form-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .interpol-results {
+    grid-template-columns: 1fr;
+  }
+  .interpol-title {
+    font-size: 22px;
+  }
+}
+
+@media (max-width: 480px) {
+  .interpol-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .interpol-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  .interpol-card-meta {
+    justify-content: center;
+  }
+  .interpol-card-name {
+    justify-content: center;
+    flex-wrap: wrap;
   }
 }

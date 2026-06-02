@@ -7,5 +7,6 @@ PyMuPDF
 fastapi
 uvicorn[standard]
 python-multipart
+httpx
 # torch is required by kokoro; install the CPU build separately:
 #   pip install torch --index-url https://download.pytorch.org/whl/cpu
