@@ -45,6 +45,10 @@ const els = {
   playIcon:    $('play-icon'),
   playText:    $('play-text'),
   statusText:  $('status-text'),
+  btnReadUrl:  $('btn-read-url'),
+  urlInput:    $('url-input'),
+  btnReadText: $('btn-read-text'),
+  textInput:   $('text-input'),
 };
 
 // ---------- Init: fetch voices ----------
@@ -130,6 +134,57 @@ function resetDropzone() {
     <span class="dz-sub">or click to choose a file</span>
   `;
 }
+
+// Handle Text & URL Inputs
+els.btnReadUrl.addEventListener('click', async () => {
+  const url = els.urlInput.value.trim();
+  if (!url) return;
+  els.uploadError.textContent = '';
+  els.btnReadUrl.textContent = 'Loading...';
+  try {
+    const res = await fetch('/api/text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url: url })
+    });
+    if (!res.ok) {
+      let detail = `${res.status} ${res.statusText}`;
+      try { const body = await res.json(); if (body.detail) detail = body.detail; } catch {}
+      throw new Error(detail);
+    }
+    const data = await res.json();
+    openReader(data);
+  } catch (e) {
+    els.uploadError.textContent = e.message;
+  } finally {
+    els.btnReadUrl.textContent = 'Read URL';
+  }
+});
+
+els.btnReadText.addEventListener('click', async () => {
+  const text = els.textInput.value.trim();
+  if (!text) return;
+  els.uploadError.textContent = '';
+  els.btnReadText.textContent = 'Loading...';
+  try {
+    const res = await fetch('/api/text', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: text })
+    });
+    if (!res.ok) {
+      let detail = `${res.status} ${res.statusText}`;
+      try { const body = await res.json(); if (body.detail) detail = body.detail; } catch {}
+      throw new Error(detail);
+    }
+    const data = await res.json();
+    openReader(data);
+  } catch (e) {
+    els.uploadError.textContent = e.message;
+  } finally {
+    els.btnReadText.textContent = 'Read Text';
+  }
+});
 
 // =====================================================================
 // READER — open / close

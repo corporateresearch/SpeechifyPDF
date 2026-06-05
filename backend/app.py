@@ -23,6 +23,13 @@ from starlette.concurrency import run_in_threadpool
 
 import tts
 from pdf_utils import extract_document
+from pydantic import BaseModel
+import text_utils
+
+class TextRequest(BaseModel):
+    text: str
+    title: str = "Pasted Text"
+    url: str | None = None
 
 app = FastAPI(title="SpeechifyPDF")
 app.add_middleware(
@@ -61,6 +68,35 @@ async def upload(file: UploadFile = File(...)):
         raise HTTPException(422, "No extractable text found (the PDF may be scanned images).")
 
     # Evict oldest document if we exceed the cap (keeps memory bounded).
+    if len(_documents) >= MAX_DOCUMENTS:
+        oldest = next(iter(_documents))
+        _documents.pop(oldest, None)
+        for key in [k for k in _audio_cache if k[0] == oldest]:
+            _audio_cache.pop(key, None)
+
+    doc_id = uuid.uuid4().hex[:12]
+    _documents[doc_id] = document
+    payload = document.to_dict()
+    payload["doc_id"] = doc_id
+    payload["sentence_count"] = len(document.sentences)
+    return payload
+
+@app.post("/api/text")
+async def upload_text(req: TextRequest):
+    if req.url:
+        try:
+            text, title = await run_in_threadpool(text_utils.fetch_url_text, req.url)
+            document = text_utils.create_document_from_text(text, title)
+        except Exception as exc:
+            raise HTTPException(400, f"Could not fetch URL: {exc}")
+    else:
+        if not req.text.strip():
+            raise HTTPException(400, "Text is empty.")
+        document = text_utils.create_document_from_text(req.text, req.title)
+
+    if not document.sentences:
+        raise HTTPException(422, "No extractable text found.")
+
     if len(_documents) >= MAX_DOCUMENTS:
         oldest = next(iter(_documents))
         _documents.pop(oldest, None)
