@@ -27,7 +27,7 @@ from pydantic import BaseModel
 import text_utils
 
 class TextRequest(BaseModel):
-    text: str
+    text: str | None = None
     title: str = "Pasted Text"
     url: str | None = None
 
@@ -90,7 +90,7 @@ async def upload_text(req: TextRequest):
         except Exception as exc:
             raise HTTPException(400, f"Could not fetch URL: {exc}")
     else:
-        if not req.text.strip():
+        if not req.text or not req.text.strip():
             raise HTTPException(400, "Text is empty.")
         document = text_utils.create_document_from_text(req.text, req.title)
 
