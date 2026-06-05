@@ -83,7 +83,7 @@ def _group_words(tokens, time_offset: float) -> list[dict]:
 
 
 def _fill_missing_timings(words: list[dict], total: float) -> None:
-    """Ensure every word has a usable [start, end] by interpolating gaps."""
+    """Ensure every word has a usable [start, end] by filling gaps."""
     n = len(words)
     for i, w in enumerate(words):
         if w["start"] is None:
